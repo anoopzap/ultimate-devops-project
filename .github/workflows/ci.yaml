@@ -8,6 +8,7 @@ on:
       - main
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
 
@@ -20,13 +21,13 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Build
+      - name: Build Application
         working-directory: src/product-catalog
         run: |
           go mod download
           go build -o product-catalog-service main.go
 
-      - name: unit tests
+      - name: Run Unit Tests
         working-directory: src/product-catalog
         run: |
           go test ./...
@@ -43,11 +44,11 @@ jobs:
         with:
           go-version: '1.22'
 
-      -name: Run golangci-lint
-       working-directory: src/product-catalog
-       run: |
-         go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
-         golangci-lint run ./... --disable staticcheck
+      - name: Run golangci-lint
+        working-directory: src/product-catalog
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
+          golangci-lint run ./... --disable staticcheck
 
   docker:
     runs-on: ubuntu-latest
@@ -60,16 +61,16 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: Install Docker
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Docker Push
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./src/product-catalog
@@ -88,14 +89,17 @@ jobs:
         with:
           token: ${{ secrets.TOKEN }}
 
-      - name: Update tag in kubernetes deployment manifest
+      - name: Update Kubernetes Manifest
         run: |
           sed -i "s|image: .*|image: anoopzap/product-catalog:${{ github.run_id }}|" kubernetes/productcatalog/deploy.yaml
 
-      - name: Commit and push changes
+      - name: Commit and Push Changes
         run: |
           git config --global user.email "yourmail@gmail.com"
           git config --global user.name "anoopzap"
+
           git add kubernetes/productcatalog/deploy.yaml
+
           git commit -m "[CI]: Update product catalog image tag" || echo "No changes to commit"
-          git push origin HEAD:main        
+
+          git push origin HEAD:main
