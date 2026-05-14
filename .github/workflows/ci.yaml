@@ -86,20 +86,11 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.TOKEN }}
 
       - name: Update Kubernetes Manifest
         run: |
           sed -i "s|image: .*|image: anoopzap/product-catalog:${{ github.run_id }}|" kubernetes/productcatalog/deploy.yaml
 
-      - name: Commit and Push Changes
+      - name: Verify Updated Manifest
         run: |
-          git config --global user.email "yourmail@gmail.com"
-          git config --global user.name "anoopzap"
-
-          git add kubernetes/productcatalog/deploy.yaml
-
-          git commit -m "[CI]: Update product catalog image tag" || echo "No changes to commit"
-
-          git push origin HEAD:githubcicheck
+          cat kubernetes/productcatalog/deploy.yaml
